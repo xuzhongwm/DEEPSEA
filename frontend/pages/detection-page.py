@@ -88,55 +88,59 @@ with tab1:
         if run:
             results = model.predict(image)
             result_image = results[0].plot()
+            boxes = results[0].boxes
 
-            # show detection result image
-            with col2:
-                st.image(result_image, caption="Detection Result", use_container_width=False, width=450)
-
-            # Pie chart of detected species
-            labels = [int(cls) for cls in results[0].boxes.cls]
-            counts = Counter(labels)
-            categories = [model.names[i] for i in counts.keys()]
-            values = list(counts.values())
-
-            if values:
-                st.markdown("---")
-                fig, ax = plt.subplots(figsize=(7,7))
-                colors = plt.get_cmap("tab20").colors[:len(values)]
-
-                wedges, texts, autotexts = ax.pie(
-                    values,
-                    labels=None,
-                    autopct="%1.1f%%",
-                    pctdistance=0.7,
-                    startangle=90,
-                    counterclock=False,
-                    wedgeprops={"linewidth":1, "edgecolor":"white"},
-                    colors=colors
-                )
-
-                # add labels
-                for i, p in enumerate(wedges):
-                    if values[i] < 0.01:  
-                        continue
-                    ang = (p.theta2 - p.theta1)/2. + p.theta1
-                    y = np.sin(np.deg2rad(ang))
-                    x = np.cos(np.deg2rad(ang))
-                    ha = {-1: "right", 1: "left"}[int(np.sign(x))]
-                    ax.annotate(
-                        f"{categories[i]}",
-                        xy=(x, y),
-                        xytext=(1.3*np.sign(x), 1.3*y),
-                        horizontalalignment=ha,
-                        arrowprops=dict(arrowstyle="-"),
-                        fontsize=10
-                    )
-
-                ax.set_title("Detected Species Distribution", fontsize=12)
-                ax.axis('equal')
-                st.pyplot(fig, clear_figure=True, use_container_width=False, width=400)
-            else:
+            if boxes is None or len(boxes) == 0:
                 st.info("No species detected to plot!")
+            else: 
+                # show detection result image
+                with col2:
+                    st.image(result_image, caption="Detection Result", use_container_width=False, width=450)
+
+                # # Pie chart of detected species
+                # labels = [int(cls) for cls in results[0].boxes.cls]
+                # counts = Counter(labels)
+                # categories = [model.names[i] for i in counts.keys()]
+                # values = list(counts.values())
+
+                # if values:
+                #     st.markdown("---")
+                #     fig, ax = plt.subplots(figsize=(7,7))
+                #     colors = plt.get_cmap("tab20").colors[:len(values)]
+
+                #     wedges, texts, autotexts = ax.pie(
+                #         values,
+                #         labels=None,
+                #         autopct="%1.1f%%",
+                #         pctdistance=0.7,
+                #         startangle=90,
+                #         counterclock=False,
+                #         wedgeprops={"linewidth":1, "edgecolor":"white"},
+                #         colors=colors
+                #     )
+
+                #     # add labels
+                #     for i, p in enumerate(wedges):
+                #         if values[i] < 0.01:  
+                #             continue
+                #         ang = (p.theta2 - p.theta1)/2. + p.theta1
+                #         y = np.sin(np.deg2rad(ang))
+                #         x = np.cos(np.deg2rad(ang))
+                #         ha = {-1: "right", 1: "left"}[int(np.sign(x))]
+                #         ax.annotate(
+                #             f"{categories[i]}",
+                #             xy=(x, y),
+                #             xytext=(1.3*np.sign(x), 1.3*y),
+                #             horizontalalignment=ha,
+                #             arrowprops=dict(arrowstyle="-"),
+                #             fontsize=10
+                #         )
+
+                #     ax.set_title("Detected Species Distribution", fontsize=12)
+                #     ax.axis('equal')
+                #     st.pyplot(fig, clear_figure=True, use_container_width=False, width=400)
+                # else:
+                #     st.info("No species detected to plot!")
 
 with tab2:
     with st.container():
@@ -182,9 +186,9 @@ with tab2:
             st.image([img for _, img in images_list], width=150, caption=[name for name,_ in images_list])
 
             # Remove All button
-            col1, col2 = st.columns([8, 1])
+            col1, col2 = st.columns([10, 2])
             with col2:
-                if st.button("Remove All Images", type="primary"):
+                if st.button("Remove All", type="primary"):
                     st.session_state.clear_uploader += 1
                     st.rerun()
 
@@ -192,14 +196,19 @@ with tab2:
             if run_batch:
                 total_counts = Counter()
 
-                for name, img in images_list:
-                    results = model.predict(img)
-                    result_image = results[0].plot()
-                    st.image(result_image, caption=f"Detected: {name}", width=400)
+                # larger expander for all results
+                with st.expander("Show All Detection Results", expanded=False):
+                    for idx, (name, img) in enumerate(images_list):
+                        # each image result in its own expander
+                        with st.expander(f"Detection result for {name}", expanded=(idx == 0)):
+                            results = model.predict(img)
+                            result_image = results[0].plot()
+                            st.image(result_image, caption=f"Detected: {name}", width=400)
 
-                    # add up total counts in batch
-                    labels = [int(cls) for cls in results[0].boxes.cls]
-                    total_counts.update(labels)
+                            # add up total counts in batch
+                            labels = [int(cls) for cls in results[0].boxes.cls]
+                            total_counts.update(labels)
+
                 
                 st.markdown("---")
                 st.markdown(
