@@ -59,7 +59,7 @@ model = load_model()
 if 'clear_uploader' not in st.session_state:
     st.session_state.clear_uploader = 0
 
-tab1, tab2 = st.tabs(["Single Image", "Batch Upload"])
+tab1, tab2, tab3 = st.tabs(["Single Image", "Batch Upload", "Camera"])
 
 with tab1:
     # file uploader
@@ -269,3 +269,45 @@ with tab2:
                     file_name=filename,
                     mime="text/csv"
                 )
+
+with tab3:
+    st.markdown(
+        """
+        <h4 style='text-align: left; font-weight: 600; font-size: 16px; margin-top: 0px;'>
+            Take a Photo for Detection:
+        </h4>
+        """,
+        unsafe_allow_html=True
+    )
+
+    cam_file = st.camera_input("", label_visibility="collapsed")
+
+    if cam_file is not None:
+        image = Image.open(cam_file).convert("RGB")
+
+        col1, col2 = st.columns([1, 1])
+
+        with col1:
+            st.image(image, caption="Camera Photo", width=300)
+
+        with col2:
+            run_cam = st.button("Run Detection", key="camera_run")
+
+            if run_cam:
+                with st.spinner("Detecting..."):
+                    results = model.predict(image)
+                    boxes = results[0].boxes
+
+                    if boxes is None or len(boxes) == 0:
+                        st.info("No benthic species detected!")
+                    else:
+                        result_image = results[0].plot()
+                        st.image(result_image, caption="Detection Result", width=300)
+
+                        labels = [int(cls) for cls in results[0].boxes.cls]
+                        species_names = [model.names[i] for i in labels]
+                        counts = Counter(species_names)
+
+                        st.subheader("Detection Summary")
+                        for species, count in counts.items():
+                            st.write(f"{species}: {count}")
