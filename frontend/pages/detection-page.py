@@ -8,6 +8,8 @@ import zipfile
 import tempfile
 import os
 import io
+import pandas as pd
+from datetime import datetime
 
 st.markdown(
     """
@@ -97,51 +99,6 @@ with tab1:
                 with col2:
                     st.image(result_image, caption="Detection Result", use_container_width=False, width=450)
 
-                # # Pie chart of detected species
-                # labels = [int(cls) for cls in results[0].boxes.cls]
-                # counts = Counter(labels)
-                # categories = [model.names[i] for i in counts.keys()]
-                # values = list(counts.values())
-
-                # if values:
-                #     st.markdown("---")
-                #     fig, ax = plt.subplots(figsize=(7,7))
-                #     colors = plt.get_cmap("tab20").colors[:len(values)]
-
-                #     wedges, texts, autotexts = ax.pie(
-                #         values,
-                #         labels=None,
-                #         autopct="%1.1f%%",
-                #         pctdistance=0.7,
-                #         startangle=90,
-                #         counterclock=False,
-                #         wedgeprops={"linewidth":1, "edgecolor":"white"},
-                #         colors=colors
-                #     )
-
-                #     # add labels
-                #     for i, p in enumerate(wedges):
-                #         if values[i] < 0.01:  
-                #             continue
-                #         ang = (p.theta2 - p.theta1)/2. + p.theta1
-                #         y = np.sin(np.deg2rad(ang))
-                #         x = np.cos(np.deg2rad(ang))
-                #         ha = {-1: "right", 1: "left"}[int(np.sign(x))]
-                #         ax.annotate(
-                #             f"{categories[i]}",
-                #             xy=(x, y),
-                #             xytext=(1.3*np.sign(x), 1.3*y),
-                #             horizontalalignment=ha,
-                #             arrowprops=dict(arrowstyle="-"),
-                #             fontsize=10
-                #         )
-
-                #     ax.set_title("Detected Species Distribution", fontsize=12)
-                #     ax.axis('equal')
-                #     st.pyplot(fig, clear_figure=True, use_container_width=False, width=400)
-                # else:
-                #     st.info("No species detected to plot!")
-
 with tab2:
     with st.container():
         st.markdown(
@@ -153,7 +110,6 @@ with tab2:
             unsafe_allow_html=True
         )
         
-        # use key to reset uploader
         uploaded_files = st.file_uploader(
             "", 
             type=["jpg","jpeg","png","zip"], 
@@ -180,12 +136,10 @@ with tab2:
                 img = Image.open(file)
                 images_list.append((file.name, img))
 
-        # image preview
         if images_list:
             st.markdown("#### Uploaded Images Preview")
             st.image([img for _, img in images_list], width=150, caption=[name for name,_ in images_list])
 
-            # Remove All button
             col1, col2 = st.columns([10, 2])
             with col2:
                 if st.button("Remove All", type="primary"):
@@ -193,23 +147,35 @@ with tab2:
                     st.rerun()
 
             run_batch = st.button("Run Detection on All Images", key="batch_run")
+
             if run_batch:
                 total_counts = Counter()
+                detailed_records = []
 
-                # larger expander for all results
                 with st.expander("Show All Detection Results", expanded=False):
                     for idx, (name, img) in enumerate(images_list):
-                        # each image result in its own expander
-                        with st.expander(f"Detection result for {name}", expanded=(idx == 0)):
-                            results = model.predict(img)
-                            result_image = results[0].plot()
-                            st.image(result_image, caption=f"Detected: {name}", width=400)
+                        results = model.predict(img)
+                        labels = [int(cls) for cls in results[0].boxes.cls]
+                        species_names = [model.names[i] for i in labels]
+                        total_counts.update(labels)
 
-                            # add up total counts in batch
-                            labels = [int(cls) for cls in results[0].boxes.cls]
-                            total_counts.update(labels)
+                        detected_str = ", ".join(species_names) if species_names else "None"
+                        detailed_records.append({
+                            "Image Name": name,
+                            "Detected Species": detected_str,
+                            "Count": len(species_names)
+                        })
 
-                
+                        # Only show image if there are detections!
+                        if len(labels) > 0:
+                            with st.expander(f"Detection result for {name}", expanded=(idx == 0)):
+                                result_image = results[0].plot()
+                                st.image(result_image, caption=f"Detected: {name}", width=400)
+                        else:
+                            with st.expander(f"No detection in {name}", expanded=False):
+                                st.info("No benthic species detected in this image.")
+
+
                 st.markdown("---")
                 st.markdown(
                     "<h1 style='text-align: center; font-size: 30px;'>💡 Batch Detection Summary</h1>",
@@ -221,52 +187,85 @@ with tab2:
                     "</p>",
                     unsafe_allow_html=True
                 )
-                st.write("\n\n\n")  
-                
+
+                # --- summary section ---
+                total = len(images_list)
+                detected = len([r for r in detailed_records if r["Count"] > 0])
+                not_detected = total - detected
+                detection_rate = (detected / total * 100) if total > 0 else 0
+
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Images", total)
+                with col2:
+                    st.metric("Detected", detected)
+                with col3:
+                    st.metric("No Benthic Species Detected", not_detected)
+                with col4:
+                    st.metric("Detection Coverage", f"{detection_rate:.1f}%")
+
+                # --- charts ---
                 if total_counts:
                     categories = [model.names[i] for i in total_counts.keys()]
                     values = list(total_counts.values())
 
-                    # two plots side by side
                     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,6), gridspec_kw={'wspace':0.6})
-
-                    # --- pie chart ---
                     colors = plt.get_cmap("tab20").colors[:len(values)]
-                    wedges, texts, autotexts = ax1.pie(
-                        values,
-                        labels=None,
-                        autopct="%1.1f%%",
-                        pctdistance=0.7,
-                        startangle=90,
-                        counterclock=False,
-                        wedgeprops={"linewidth":1, "edgecolor":"white"},
-                        colors=colors
+
+                    # Pie chart
+                    wedges, _, _ = ax1.pie(
+                        values, autopct="%1.1f%%", startangle=90,
+                        counterclock=False, colors=colors
                     )
-                    
-                    for i, p in enumerate(wedges):
-                        if values[i] < 0.01:
-                            continue
-                        ang = (p.theta2 - p.theta1)/2. + p.theta1
-                        y = np.sin(np.deg2rad(ang))
-                        x = np.cos(np.deg2rad(ang))
-                        ha = {-1: "right", 1: "left"}[int(np.sign(x))]
-                        ax1.annotate(
-                            f"{categories[i]}",
-                            xy=(x, y),
-                            xytext=(1.3*np.sign(x), 1.3*y),
-                            horizontalalignment=ha,
-                            arrowprops=dict(arrowstyle="-"),
-                            fontsize=10
-                        )
-                    ax1.set_title("Cumulative Species Distribution (Pie)", fontsize=12, pad=20)
+                    ax1.set_title("Cumulative Species Distribution (Pie)")
                     ax1.axis('equal')
 
-                    # --- bar chart ---
+                    # Bar chart
                     ax2.bar(categories, values, color=colors)
-                    ax2.set_title("Cumulative Species Counts (Bar)", fontsize=12, pad=20)
+                    ax2.set_title("Cumulative Species Counts (Bar)")
                     ax2.set_ylabel("Count")
                     ax2.set_xticklabels(categories, rotation=45, ha='right')
-
                     st.pyplot(fig, clear_figure=True, use_container_width=True)
-                else:
-                    st.info("No species detected in any of the uploaded images.")
+
+                    # --- Species table ---
+                    st.subheader("Species Statistics")
+                    species_stats = []
+                    for species, count in total_counts.items():
+                        percentage = (count / sum(values) * 100) if sum(values) > 0 else 0
+                        species_stats.append({
+                            "Species": model.names[species],
+                            "Count": count,
+                            "Percentage": f"{percentage:.1f}%"
+                        })
+                    stats_df = pd.DataFrame(species_stats)
+                    st.dataframe(stats_df, use_container_width=True)
+
+                    # Summary metrics
+                    col1, col2, col3 = st.columns(3)
+                    sorted_species = stats_df.sort_values(by="Count", ascending=False)
+                    with col1:
+                        st.metric("Most Common", sorted_species.iloc[0]["Species"], f"{sorted_species.iloc[0]['Count']} images")
+                    with col2:
+                        if len(sorted_species) > 1:
+                            st.metric("Second Most", sorted_species.iloc[1]["Species"], f"{sorted_species.iloc[1]['Count']} images")
+                        else:
+                            st.metric("Second Most", "N/A", "0 images")
+                    with col3:
+                        st.metric("Species Diversity", len(stats_df), "species detected")
+
+                # --- Detailed results table ---
+                st.subheader("Detailed Results")
+                df = pd.DataFrame(detailed_records)
+                st.dataframe(df, use_container_width=True)
+
+                # --- Download report ---
+                csv = df.to_csv(index=False)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"benthic_batch_report_{timestamp}.csv"
+
+                st.download_button(
+                    label="Download Detailed Report (CSV)",
+                    data=csv,
+                    file_name=filename,
+                    mime="text/csv"
+                )
