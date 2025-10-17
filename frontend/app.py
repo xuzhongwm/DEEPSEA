@@ -78,13 +78,13 @@ This project brings computer vision underwater! We're using cutting-edge AI mode
 ### 🌊 Supported Species
 
 Our models can identify 7 different benthic species:
-- **Eel** (鳗鱼)
-- **Scallop** (扇贝)
-- **Crab** (螃蟹)
-- **Flatfish** (比目鱼)
-- **Roundfish** (圆鱼)
-- **Skate** (鳐鱼)
-- **Whelk** (海螺)
+- **Eel**
+- **Scallop**
+- **Crab**
+- **Flatfish**
+- **Roundfish**
+- **Skate**
+- **Whelk**
 
 ### 🎮 How to Use
 
