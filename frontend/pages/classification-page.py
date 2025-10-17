@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import os
 import zipfile
+import json
 from io import BytesIO
 from datetime import datetime
 from classify_utils import *
@@ -155,6 +156,86 @@ def create_softmax_chart(probs_dict, prediction, confidence):
     
     return fig
 
+def save_feedback(prediction, confidence, user_correction, feedback_type, image_name):
+    """保存用户反馈数据"""
+    feedback_data = {
+        'timestamp': datetime.now().isoformat(),
+        'image_name': image_name,
+        'predicted_class': prediction,
+        'confidence': confidence,
+        'user_correction': user_correction,
+        'feedback_type': feedback_type  # 'correct' or 'incorrect'
+    }
+    
+    # 保存到文件
+    feedback_file = 'feedback_data.json'
+    if os.path.exists(feedback_file):
+        with open(feedback_file, 'r') as f:
+            feedbacks = json.load(f)
+    else:
+        feedbacks = []
+    
+    feedbacks.append(feedback_data)
+    
+    with open(feedback_file, 'w') as f:
+        json.dump(feedbacks, f, indent=2)
+    
+    return True
+
+def load_feedback_data():
+    """加载反馈数据"""
+    feedback_file = 'feedback_data.json'
+    if os.path.exists(feedback_file):
+        with open(feedback_file, 'r') as f:
+            return json.load(f)
+    return []
+
+def create_feedback_interface(image, prediction, confidence, image_name):
+    """创建反馈界面"""
+    st.markdown("---")
+    st.markdown("### 📝 Feedback System")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.write("**Is the prediction correct?**")
+        feedback_type = st.radio(
+            "Please select:",
+            ["✅ Correct", "❌ Incorrect"],
+            key=f"feedback_{image_name}",
+            horizontal=True
+        )
+    
+    with col2:
+        if feedback_type == "❌ Incorrect":
+            st.write("**Please select the correct classification:**")
+            correct_class = st.selectbox(
+                "Correct classification:",
+                ["Eel", "Scallop", "crab", "flatfish", "roundfish", "skate", "whelk"],
+                key=f"correction_{image_name}"
+            )
+        else:
+            correct_class = prediction
+    
+    # 提交反馈按钮
+    if st.button(f"提交反馈", key=f"submit_{image_name}"):
+        # 保存反馈
+        success = save_feedback(
+            prediction, 
+            confidence, 
+            correct_class, 
+            "correct" if feedback_type == "✅ Correct" else "incorrect",
+            image_name
+        )
+        
+        if success:
+            st.success("✅ Feedback saved!")
+            st.rerun()
+        else:       
+            st.error("❌ Failed to save feedback, please try again")
+    
+    return feedback_type, correct_class if feedback_type == "❌ Incorrect" else prediction
+
 def process_batch_images(images, model, processor, progress_bar=None):
     """批量处理图片并返回结果"""
     results = []
@@ -257,7 +338,7 @@ st.markdown(
 # Load model
 model, processor, load_msg = load_vit_model()
 
-tab1, tab2, tab3 = st.tabs(["Single Image", "Camera", "Batch Upload"])
+tab1, tab2, tab3, tab4 = st.tabs(["Single Image", "Camera", "Batch Upload", "Feedback Management"])
 
 with tab1:
     st.markdown(
@@ -291,6 +372,9 @@ with tab1:
                 # 创建并显示softmax图
                 fig = create_softmax_chart(result['all_probs'], result['prediction'], result['confidence'])
                 st.pyplot(fig)
+                
+                # 添加反馈系统
+                create_feedback_interface(image, result['prediction'], result['confidence'], f.name)
             
             st.markdown("---")
 
@@ -325,6 +409,9 @@ with tab2:
             # 创建并显示softmax图
             fig = create_softmax_chart(result['all_probs'], result['prediction'], result['confidence'])
             st.pyplot(fig)
+            
+            # 添加反馈系统
+            create_feedback_interface(image, result['prediction'], result['confidence'], "camera_photo")
         
         st.markdown("---")
 
@@ -590,3 +677,153 @@ with tab3:
                                         st.pyplot(fig)
                         else:
                             st.error(f"❌ {result['filename']}: {result.get('error', 'Unknown error')}")
+
+with tab4:
+    st.markdown(
+        """
+        <h4 style='text-align: left; font-weight: 600; font-size: 16px; margin-top: 0px;'>
+            📊 反馈数据管理
+        </h4>
+        """,
+        unsafe_allow_html=True
+    )
+    st.write("查看和管理用户反馈数据，生成强化学习数据集")
+    
+    # 加载反馈数据
+    feedbacks = load_feedback_data()
+    
+    if not feedbacks:
+        st.info("📝 暂无反馈数据。请先使用分类功能并提交反馈。")
+    else:
+        st.success(f"📊 共收集到 {len(feedbacks)} 条反馈数据")
+        
+        # 统计信息
+        col1, col2, col3, col4 = st.columns(4)
+        
+        correct_count = len([f for f in feedbacks if f['feedback_type'] == 'correct'])
+        incorrect_count = len([f for f in feedbacks if f['feedback_type'] == 'incorrect'])
+        
+        with col1:
+            st.metric("总反馈数", len(feedbacks))
+        with col2:
+            st.metric("正确预测", correct_count)
+        with col3:
+            st.metric("错误预测", incorrect_count)
+        with col4:
+            accuracy = (correct_count / len(feedbacks) * 100) if feedbacks else 0
+            st.metric("用户确认准确率", f"{accuracy:.1f}%")
+        
+        # 错误预测分析
+        if incorrect_count > 0:
+            st.subheader("🔍 错误预测分析")
+            
+            # 按物种统计错误
+            error_by_species = {}
+            for feedback in feedbacks:
+                if feedback['feedback_type'] == 'incorrect':
+                    predicted = feedback['predicted_class']
+                    corrected = feedback['user_correction']
+                    key = f"{predicted} → {corrected}"
+                    error_by_species[key] = error_by_species.get(key, 0) + 1
+            
+            if error_by_species:
+                error_df = pd.DataFrame(list(error_by_species.items()), columns=['错误类型', '次数'])
+                error_df = error_df.sort_values('次数', ascending=False)
+                st.dataframe(error_df, use_container_width=True)
+        
+        # 显示详细反馈数据
+        st.subheader("📋 详细反馈数据")
+        
+        # 创建DataFrame
+        display_data = []
+        for i, feedback in enumerate(feedbacks):
+            display_data.append({
+                '序号': i + 1,
+                '时间': feedback['timestamp'][:19],
+                '图片名称': feedback['image_name'],
+                '预测结果': feedback['predicted_class'],
+                '置信度': f"{feedback['confidence']:.2%}",
+                '用户修正': feedback['user_correction'],
+                '状态': '✅ 正确' if feedback['feedback_type'] == 'correct' else '❌ 错误'
+            })
+        
+        df = pd.DataFrame(display_data)
+        st.dataframe(df, use_container_width=True)
+        
+        # 生成强化数据集
+        st.subheader("🎯 生成强化数据集")
+        
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            if st.button("📥 导出错误预测数据集", type="primary"):
+                # 只导出错误预测的数据
+                error_feedbacks = [f for f in feedbacks if f['feedback_type'] == 'incorrect']
+                
+                if error_feedbacks:
+                    # 创建强化学习数据集
+                    reinforcement_data = []
+                    for feedback in error_feedbacks:
+                        reinforcement_data.append({
+                            'image_name': feedback['image_name'],
+                            'true_label': feedback['user_correction'],
+                            'predicted_label': feedback['predicted_class'],
+                            'confidence': feedback['confidence'],
+                            'timestamp': feedback['timestamp']
+                        })
+                    
+                    # 保存为JSON
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"reinforcement_dataset_{timestamp}.json"
+                    
+                    with open(filename, 'w') as f:
+                        json.dump(reinforcement_data, f, indent=2)
+                    
+                    st.success(f"✅ 强化数据集已导出: {filename}")
+                    st.info(f"📊 包含 {len(reinforcement_data)} 条错误预测数据")
+                else:
+                    st.warning("⚠️ 暂无错误预测数据可导出")
+        
+        with col2:
+            if st.button("📊 导出完整反馈数据"):
+                # 导出所有反馈数据
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"complete_feedback_{timestamp}.json"
+                
+                with open(filename, 'w') as f:
+                    json.dump(feedbacks, f, indent=2)
+                
+                st.success(f"✅ 完整反馈数据已导出: {filename}")
+        
+        # 数据清理
+        st.subheader("🧹 数据管理")
+        
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            if st.button("🗑️ 清空所有反馈数据", type="secondary"):
+                if os.path.exists('feedback_data.json'):
+                    os.remove('feedback_data.json')
+                    st.success("✅ 反馈数据已清空")
+                    st.rerun()
+        
+        with col2:
+            if st.button("🔄 刷新数据"):
+                st.rerun()
+        
+        # 显示数据集统计图表
+        if len(feedbacks) > 0:
+            st.subheader("📈 反馈数据统计")
+            
+            # 按时间统计
+            dates = [f['timestamp'][:10] for f in feedbacks]
+            date_counts = pd.Series(dates).value_counts().sort_index()
+            
+            fig, ax = plt.subplots(figsize=(10, 4))
+            ax.plot(date_counts.index, date_counts.values, marker='o')
+            ax.set_title('每日反馈数量')
+            ax.set_xlabel('日期')
+            ax.set_ylabel('反馈数量')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            st.pyplot(fig)
