@@ -28,22 +28,22 @@ st.markdown(
     
     /* Keep default background, just style text */
     .stApp {
-        color: white;
+        color: black;
     }
     
     /* 设置主要文字颜色为白色 */
     .stMarkdown, .stText, .stSelectbox, .stTextInput, .stTextArea, .stNumberInput {
-        color: white !important;
+        color: black !important;
     }
     
     /* 设置标题颜色为白色 */
     h1, h2, h3, h4, h5, h6 {
-        color: white !important;
+        color: black !important;
     }
     
     /* 设置段落和文本颜色为白色 */
     p, div, span, label {
-        color: white !important;
+        color: black !important;
     }
 
     .stImage > div {
@@ -243,7 +243,7 @@ def create_batch_summary_chart(pred_counts):
 
 # Page title
 st.markdown(
-    "<h1 style='text-align: center; font-size: 40px;'>🖼️ ViT Image Classifier</h1>",
+    "<h1 style='text-align: center; font-size: 40px;'>ViT Image Classifier</h1>",
     unsafe_allow_html=True
 )
 
