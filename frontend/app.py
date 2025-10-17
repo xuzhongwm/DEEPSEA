@@ -1,39 +1,45 @@
 import streamlit as st
 
+# ----------------------------
+# Page Configuration
+# ----------------------------
 st.set_page_config(page_title="Benthic Species Detection", layout="wide")
 
+# ----------------------------
+# Custom CSS
+# ----------------------------
 st.markdown(
     """
     <style>
-    /* horizontally centered */
+    /* Center and limit main content width */
     .block-container {
-        max-width: 1100px;        /* max width */
-        margin: 0 auto;           /* auto center */
+        max-width: 1100px;
+        margin: 0 auto;
         padding-top: 1rem;
         padding-bottom: 1rem;
     }
 
-    /* prevent sidebar squeezing the content */
+    /* Prevent sidebar overlapping content */
     [data-testid="stSidebar"] {
         z-index: 1;
     }
-    
-    /* 设置文字颜色为白色 */
+
+    /* Set global font color */
     .stApp {
         color: black;
     }
-    
-    /* 设置主要文字颜色为白色 */
+
+    /* Ensure text elements stay black */
     .stMarkdown, .stText, .stSelectbox, .stTextInput, .stTextArea, .stNumberInput {
         color: black !important;
     }
-    
-    /* 设置标题颜色为白色 */
+
+    /* Title color */
     h1, h2, h3, h4, h5, h6 {
         color: black !important;
     }
-    
-    /* 设置段落和文本颜色为白色 */
+
+    /* Paragraph and label color */
     p, div, span, label {
         color: black !important;
     }
@@ -42,7 +48,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# page title
+# ----------------------------
+# Page Title
+# ----------------------------
 st.markdown(
     """
     <div style='text-align: center; margin-top: 0.5em; margin-bottom: 1.5em;'>
@@ -58,16 +66,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Main content
+# ----------------------------
+# Main Content
+# ----------------------------
 st.markdown("""
 ## Introduction
 
 **DEEPSEA** is a next-generation computer vision toolkit designed for automated classification and detection of benthic marine species. Leveraging state-of-the-art deep learning frameworks such as **Google’s Vision Transformer (ViT)** for fine-grained species recognition and **YOLOv8** for real-time object detection, DEEPSEA bridges modern artificial intelligence with marine ecological research.
 
-The toolkit enables researchers to accurately identify and localize underwater organisms—such as crabs, eels, and scallops—across large-scale ocean imagery datasets. By combining high-performance inference with an intuitive interface, **DEEPSEA** empowers marine biologists to accelerate biodiversity surveys, ecological monitoring, and conservation studies through intelligent, AI-driven analysis
+The toolkit enables researchers to accurately identify and localize underwater organisms—such as crabs, eels, and scallops—across large-scale ocean imagery datasets. By combining high-performance inference with an intuitive interface, **DEEPSEA** empowers marine biologists to accelerate biodiversity surveys, ecological monitoring, and conservation studies through intelligent, AI-driven analysis.
 
 
-### Getting started
+### Getting Started
 
 Visit the live DEEPSEA here:  
 🔗 [https://unturgidly-unbesprinkled-alycia.ngrok-free.dev/](https://unturgidly-unbesprinkled-alycia.ngrok-free.dev/)
@@ -89,9 +99,12 @@ No installation is required — simply open the link in your browser to start ex
 4. **View and Analyze Results**
    - Interactive visualizations and summary statistics are displayed instantly.
    - Download processed outputs or view model performance metrics.
+""")
 
-
-
+# ----------------------------
+# Highlights Section
+# ----------------------------
+st.markdown("""
 ### Highlights
 
 **1. Model Performance**
@@ -104,7 +117,7 @@ Our models are trained on a curated benthic dataset containing thousands of labe
 | **YOLOv8** | Object Detection | mAP@0.5 | **≈ 85%** | **97–99%** |
 
 - **ViT (Classification):** Achieves ~92% accuracy with an average confidence of **99.9%**, indicating extremely strong model certainty across predictions.  
-- **YOLOv8 (Detection):** Delivers around 80% mean average precision (mAP) with **high confidence scores (97–99%)** for most detections, even under variable lighting and visibility.  
+- **YOLOv8 (Detection):** Delivers around 85% mean average precision (mAP) with **high confidence scores (97–99%)** for most detections, even under variable lighting and visibility.  
 - Both models maintain **high-confidence predictions** while generalizing well across benthic categories, ensuring stable performance on unseen underwater imagery.
 
 **2. Data Analysis**
@@ -124,7 +137,27 @@ Our models are trained on a curated benthic dataset containing thousands of labe
 | Avg. mAP (YOLOv8) | 85.3% |
 | Dominant Species | Crab (42%) |
 | Avg. Processing Time | 0.8s/image |
-            
+""")
+
+# ----------------------------
+# Two Images Side-by-Side
+# ----------------------------
+st.markdown(
+    """
+    <p align="center" style="display: flex; justify-content: center; align-items: flex-start;">
+      <img src="https://raw.githubusercontent.com/Felikscjy/Benthic_detect/main/frontend/images/curve.png" 
+           alt="Curve Image" width="45%" style="margin-right:10px;"/>
+      <img src="https://raw.githubusercontent.com/Felikscjy/Benthic_detect/main/frontend/images/normalized.png" 
+           alt="Normalized Curve Image" width="45%; margin-top:15px;"/>
+    </p>
+    """,
+    unsafe_allow_html=True
+)
+
+# ----------------------------
+# Real-Time Monitoring Section
+# ----------------------------
+st.markdown("""
 **3. Real-Time Monitoring**
 
 **DEEPSEA** is designed not only for post-collection image analysis but also for **real-time field monitoring**.
@@ -137,10 +170,12 @@ Our models are trained on a curated benthic dataset containing thousands of labe
 ### Dive Deeper
 [📄 Read the full YOLOv8 & ViT Overview (PDF)](https://github.com/Felikscjy/Benthic_detect/blob/main/DEEPSEA.pdf)
 
-
 Our goal is to make benthic research faster, more accurate, and a lot more fun by combining AI with ocean discovery!
 """)
 
+# ----------------------------
+# Footer
+# ----------------------------
 st.markdown("---")
 st.markdown(
     "<p style='text-align:center; color:gray; font-size:14px;'>"
