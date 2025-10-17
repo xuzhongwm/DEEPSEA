@@ -135,8 +135,7 @@ Our models are trained on a curated benthic dataset containing thousands of labe
 
 
 ### Dive Deeper
-[📄 Read the full YOLOv8 & ViT Overview (PDF)](https://github.com/Felikscjy/Benthic_detect/DEEPSEA.pdf)
-
+[📄 Read the full YOLOv8 & ViT Overview (PDF)](https://github.com/Felikscjy/Benthic_detect/blob/main/DEEPSEA.pdf)
 
 
 Our goal is to make benthic research faster, more accurate, and a lot more fun by combining AI with ocean discovery!
