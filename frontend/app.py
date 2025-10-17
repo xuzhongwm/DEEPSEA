@@ -20,22 +20,22 @@ st.markdown(
     
     /* 设置文字颜色为白色 */
     .stApp {
-        color: white;
+        color: black;
     }
     
     /* 设置主要文字颜色为白色 */
     .stMarkdown, .stText, .stSelectbox, .stTextInput, .stTextArea, .stNumberInput {
-        color: white !important;
+        color: black !important;
     }
     
     /* 设置标题颜色为白色 */
     h1, h2, h3, h4, h5, h6 {
-        color: white !important;
+        color: black !important;
     }
     
     /* 设置段落和文本颜色为白色 */
     p, div, span, label {
-        color: white !important;
+        color: black !important;
     }
     </style>
     """,
