@@ -62,16 +62,17 @@ st.markdown(
     .stButton > button {
         transition: all 0.3s ease;
         border-radius: 25px;
-        background: linear-gradient(45deg, #1C3659, #5A7A9B);
-        color: white;
-        border: none;
+        background: transparent;
+        color: black !important;
+        border: 2px solid #1C3659;
         padding: 0.5rem 2rem;
         font-weight: bold;
     }
     
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(28, 54, 89, 0.4);
+        background: rgba(28, 54, 89, 0.1);
+        box-shadow: 0 5px 15px rgba(28, 54, 89, 0.2);
     }
     
     /* 文件上传区域悬停效果 */
@@ -91,19 +92,24 @@ st.markdown(
         border-radius: 20px;
         padding: 8px 16px;
         margin: 2px;
+        background: transparent;
+        color: black !important;
+        border: 2px solid transparent;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        background: linear-gradient(45deg, rgba(28, 54, 89, 0.8), rgba(90, 122, 155, 0.8));
-        color: white !important;
+        background: rgba(28, 54, 89, 0.1);
+        color: black !important;
+        border: 2px solid #1C3659;
         transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(28, 54, 89, 0.3);
+        box-shadow: 0 4px 12px rgba(28, 54, 89, 0.2);
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(45deg, #1C3659, #5A7A9B);
-        color: white !important;
-        box-shadow: 0 2px 8px rgba(28, 54, 89, 0.4);
+        background: rgba(28, 54, 89, 0.1);
+        color: black !important;
+        border: 2px solid #1C3659;
+        box-shadow: 0 2px 8px rgba(28, 54, 89, 0.2);
     }
 
     </style>
@@ -193,48 +199,49 @@ def load_feedback_data():
 def create_feedback_interface(image, prediction, confidence, image_name):
     """创建反馈界面"""
     st.markdown("---")
-    st.markdown("### 📝 Feedback System")
     
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.write("**Is the prediction correct?**")
-        feedback_type = st.radio(
-            "Please select:",
-            ["✅ Correct", "❌ Incorrect"],
-            key=f"feedback_{image_name}",
-            horizontal=True
-        )
-    
-    with col2:
-        if feedback_type == "❌ Incorrect":
-            st.write("**Please select the correct classification:**")
-            correct_class = st.selectbox(
-                "Correct classification:",
-                ["Eel", "Scallop", "crab", "flatfish", "roundfish", "skate", "whelk"],
-                key=f"correction_{image_name}"
-            )
-        else:
-            correct_class = prediction
-    
-    # 提交反馈按钮
-    if st.button(f"提交反馈", key=f"submit_{image_name}"):
-        # 保存反馈
-        success = save_feedback(
-            prediction, 
-            confidence, 
-            correct_class, 
-            "correct" if feedback_type == "✅ Correct" else "incorrect",
-            image_name
-        )
+    # 使用expander默认收起反馈系统
+    with st.expander("Feedback System", expanded=False):
+        col1, col2 = st.columns([1, 1])
         
-        if success:
-            st.success("✅ Feedback saved!")
-            st.rerun()
-        else:       
-            st.error("❌ Failed to save feedback, please try again")
+        with col1:
+            st.write("**Is the prediction correct?**")
+            feedback_type = st.radio(
+                "Please select:",
+                ["Correct", "Incorrect"],
+                key=f"feedback_{image_name}",
+                horizontal=True
+            )
+        
+        with col2:
+            if feedback_type == "Incorrect":
+                st.write("**Please select the correct classification:**")
+                correct_class = st.selectbox(
+                    "Correct classification:",
+                    ["Eel", "Scallop", "crab", "flatfish", "roundfish", "skate", "whelk"],
+                    key=f"correction_{image_name}"
+                )
+            else:
+                correct_class = prediction
+        
+        # 提交反馈按钮
+        if st.button(f"Submit Feedback", key=f"submit_{image_name}"):
+            # 保存反馈
+            success = save_feedback(
+                prediction, 
+                confidence, 
+                correct_class, 
+                "correct" if feedback_type == "Correct" else "incorrect",
+                image_name
+            )
+            
+            if success:
+                st.success("Feedback saved!")
+                st.rerun()
+            else:       
+                st.error("Failed to save feedback, please try again")
     
-    return feedback_type, correct_class if feedback_type == "❌ Incorrect" else prediction
+    return feedback_type if 'feedback_type' in locals() else "Correct", correct_class if 'correct_class' in locals() else prediction
 
 def process_batch_images(images, model, processor, progress_bar=None):
     """批量处理图片并返回结果"""
@@ -366,8 +373,8 @@ with tab1:
                     result = classify_image_with_probs(image, model, processor)
                 
                 # 显示预测结果
-                st.success(f"🎯 **Prediction:** {result['prediction']}")
-                st.info(f"📊 **Confidence:** {result['confidence']:.2%}")
+                st.success(f"**Prediction:** {result['prediction']}")
+                st.info(f"**Confidence:** {result['confidence']:.2%}")
                 
                 # 创建并显示softmax图
                 fig = create_softmax_chart(result['all_probs'], result['prediction'], result['confidence'])
@@ -403,8 +410,8 @@ with tab2:
                 result = classify_image_with_probs(image, model, processor)
             
             # 显示预测结果
-            st.success(f"🎯 **Prediction:** {result['prediction']}")
-            st.info(f"📊 **Confidence:** {result['confidence']:.2%}")
+            st.success(f"**Prediction:** {result['prediction']}")
+            st.info(f"**Confidence:** {result['confidence']:.2%}")
             
             # 创建并显示softmax图
             fig = create_softmax_chart(result['all_probs'], result['prediction'], result['confidence'])
@@ -419,7 +426,7 @@ with tab3:
     st.markdown(
         """
         <h4 style='text-align: left; font-weight: 600; font-size: 16px; margin-top: 0px;'>
-            📁 Batch Image Upload
+            Batch Image Upload
         </h4>
         """,
         unsafe_allow_html=True
@@ -477,10 +484,10 @@ with tab3:
                         total_files = len(file_list)
                         filtered_count = len(filtered_files)
                         st.success(f"Found {len(image_files)} images in the ZIP file")
-                        st.info(f"📊 Processed {total_files} total files, filtered to {filtered_count} valid files, found {len(image_files)} images")
+                        st.info(f"Processed {total_files} total files, filtered to {filtered_count} valid files, found {len(image_files)} images")
                         
                         # 显示图片列表预览
-                        with st.expander("📋 Preview images in folder"):
+                        with st.expander("Preview images in folder"):
                             for i, img_file in enumerate(image_files[:10]):  # 只显示前10个
                                 st.write(f"{i+1}. {img_file}")
                             if len(image_files) > 10:
@@ -511,7 +518,7 @@ with tab3:
                 uploaded_files = []
     
     if uploaded_files:
-        st.info(f"📊 **{len(uploaded_files)} images** selected for batch processing")
+        st.info(f"**{len(uploaded_files)} images** selected for batch processing")
         
         # 处理选项
         col1, col2 = st.columns([1, 1])
@@ -520,7 +527,7 @@ with tab3:
         with col2:
             download_report = st.checkbox("Download report as CSV", value=True)
         
-        if st.button("🚀 Start Batch Processing", type="primary"):
+        if st.button("Start Batch Processing", type="primary"):
             # 准备图片数据
             images = []
             for file in uploaded_files:
@@ -545,15 +552,15 @@ with tab3:
                 status_text = st.empty()
                 
                 # 批量处理
-                status_text.text("🔄 Processing images...")
+                status_text.text("Processing images...")
                 results = process_batch_images(images, model, processor, progress_bar)
                 
                 # 生成报告
-                status_text.text("📊 Generating report...")
+                status_text.text("Generating report...")
                 df, total, successful, failed, pred_counts = create_batch_report(results)
                 
                 # 显示结果
-                st.success(f"✅ Batch processing completed! {successful}/{total} images processed successfully")
+                st.success(f"Batch processing completed! {successful}/{total} images processed successfully")
                 
                 # 统计信息
                 col1, col2, col3, col4 = st.columns(4)
@@ -569,13 +576,13 @@ with tab3:
                 
                 # 预测分布图表
                 if len(pred_counts) > 0:
-                    st.subheader("📈 Prediction Distribution")
+                    st.subheader("Prediction Distribution")
                     summary_chart = create_batch_summary_chart(pred_counts)
                     if summary_chart:
                         st.pyplot(summary_chart)
                     
                     # 详细种类统计
-                    st.subheader("📊 Species Statistics")
+                    st.subheader("Species Statistics")
                     species_stats = []
                     for species, count in pred_counts.items():
                         percentage = (count / successful * 100) if successful > 0 else 0
@@ -603,7 +610,7 @@ with tab3:
                         st.metric("Species Diversity", f"{diversity} species", f"out of 7 possible")
                 
                 # 详细结果表格
-                st.subheader("📋 Detailed Results")
+                st.subheader("Detailed Results")
                 st.dataframe(df, use_container_width=True)
                 
                 # 下载报告
@@ -641,7 +648,7 @@ with tab3:
                     full_report = "\n".join(report_sections)
                     
                     st.download_button(
-                        label="📥 Download Complete Report (CSV)",
+                        label="Download Complete Report (CSV)",
                         data=full_report,
                         file_name=filename,
                         mime="text/csv"
@@ -649,10 +656,10 @@ with tab3:
                 
                 # 显示个别结果（可选）
                 if show_individual:
-                    st.subheader("🖼️ Individual Results")
+                    st.subheader("Individual Results")
                     for i, result in enumerate(results):
                         if result['status'] == 'success':
-                            with st.expander(f"📸 {result['filename']} - {result['prediction']}"):
+                            with st.expander(f"{result['filename']} - {result['prediction']}"):
                                 col1, col2 = st.columns([1, 1])
                                 with col1:
                                     # 显示图片（需要重新加载）
@@ -676,26 +683,26 @@ with tab3:
                                         fig = create_softmax_chart(result['all_probs'], result['prediction'], result['confidence'])
                                         st.pyplot(fig)
                         else:
-                            st.error(f"❌ {result['filename']}: {result.get('error', 'Unknown error')}")
+                            st.error(f"{result['filename']}: {result.get('error', 'Unknown error')}")
 
 with tab4:
     st.markdown(
         """
         <h4 style='text-align: left; font-weight: 600; font-size: 16px; margin-top: 0px;'>
-            📊 反馈数据管理
+            Feedback Data Management
         </h4>
         """,
         unsafe_allow_html=True
     )
-    st.write("查看和管理用户反馈数据，生成强化学习数据集")
+    st.write("View and manage user feedback data, generate reinforcement learning datasets")
     
     # 加载反馈数据
     feedbacks = load_feedback_data()
     
     if not feedbacks:
-        st.info("📝 暂无反馈数据。请先使用分类功能并提交反馈。")
+        st.info("No feedback data available. Please use the classification feature and submit feedback first.")
     else:
-        st.success(f"📊 共收集到 {len(feedbacks)} 条反馈数据")
+        st.success(f"Collected {len(feedbacks)} feedback entries")
         
         # 统计信息
         col1, col2, col3, col4 = st.columns(4)
@@ -704,18 +711,18 @@ with tab4:
         incorrect_count = len([f for f in feedbacks if f['feedback_type'] == 'incorrect'])
         
         with col1:
-            st.metric("总反馈数", len(feedbacks))
+            st.metric("Total Feedback", len(feedbacks))
         with col2:
-            st.metric("正确预测", correct_count)
+            st.metric("Correct Predictions", correct_count)
         with col3:
-            st.metric("错误预测", incorrect_count)
+            st.metric("Incorrect Predictions", incorrect_count)
         with col4:
             accuracy = (correct_count / len(feedbacks) * 100) if feedbacks else 0
-            st.metric("用户确认准确率", f"{accuracy:.1f}%")
+            st.metric("User Confirmed Accuracy", f"{accuracy:.1f}%")
         
         # 错误预测分析
         if incorrect_count > 0:
-            st.subheader("🔍 错误预测分析")
+            st.subheader("Incorrect Prediction Analysis")
             
             # 按物种统计错误
             error_by_species = {}
@@ -727,36 +734,36 @@ with tab4:
                     error_by_species[key] = error_by_species.get(key, 0) + 1
             
             if error_by_species:
-                error_df = pd.DataFrame(list(error_by_species.items()), columns=['错误类型', '次数'])
-                error_df = error_df.sort_values('次数', ascending=False)
+                error_df = pd.DataFrame(list(error_by_species.items()), columns=['Error Type', 'Count'])
+                error_df = error_df.sort_values('Count', ascending=False)
                 st.dataframe(error_df, use_container_width=True)
         
         # 显示详细反馈数据
-        st.subheader("📋 详细反馈数据")
+        st.subheader("Detailed Feedback Data")
         
         # 创建DataFrame
         display_data = []
         for i, feedback in enumerate(feedbacks):
             display_data.append({
-                '序号': i + 1,
-                '时间': feedback['timestamp'][:19],
-                '图片名称': feedback['image_name'],
-                '预测结果': feedback['predicted_class'],
-                '置信度': f"{feedback['confidence']:.2%}",
-                '用户修正': feedback['user_correction'],
-                '状态': '✅ 正确' if feedback['feedback_type'] == 'correct' else '❌ 错误'
+                'No.': i + 1,
+                'Time': feedback['timestamp'][:19],
+                'Image Name': feedback['image_name'],
+                'Prediction': feedback['predicted_class'],
+                'Confidence': f"{feedback['confidence']:.2%}",
+                'User Correction': feedback['user_correction'],
+                'Status': 'Correct' if feedback['feedback_type'] == 'correct' else 'Incorrect'
             })
         
         df = pd.DataFrame(display_data)
         st.dataframe(df, use_container_width=True)
         
         # 生成强化数据集
-        st.subheader("🎯 生成强化数据集")
+        st.subheader("Generate Reinforcement Dataset")
         
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            if st.button("📥 导出错误预测数据集", type="primary"):
+            if st.button("Export Incorrect Predictions Dataset", type="primary"):
                 # 只导出错误预测的数据
                 error_feedbacks = [f for f in feedbacks if f['feedback_type'] == 'incorrect']
                 
@@ -779,13 +786,13 @@ with tab4:
                     with open(filename, 'w') as f:
                         json.dump(reinforcement_data, f, indent=2)
                     
-                    st.success(f"✅ 强化数据集已导出: {filename}")
-                    st.info(f"📊 包含 {len(reinforcement_data)} 条错误预测数据")
+                    st.success(f"Reinforcement dataset exported: {filename}")
+                    st.info(f"Contains {len(reinforcement_data)} incorrect prediction entries")
                 else:
-                    st.warning("⚠️ 暂无错误预测数据可导出")
+                    st.warning("No incorrect prediction data available for export")
         
         with col2:
-            if st.button("📊 导出完整反馈数据"):
+            if st.button("Export Complete Feedback Data"):
                 # 导出所有反馈数据
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"complete_feedback_{timestamp}.json"
@@ -793,27 +800,27 @@ with tab4:
                 with open(filename, 'w') as f:
                     json.dump(feedbacks, f, indent=2)
                 
-                st.success(f"✅ 完整反馈数据已导出: {filename}")
+                st.success(f"Complete feedback data exported: {filename}")
         
         # 数据清理
-        st.subheader("🧹 数据管理")
+        st.subheader("Data Management")
         
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            if st.button("🗑️ 清空所有反馈数据", type="secondary"):
+            if st.button("Clear All Feedback Data", type="secondary"):
                 if os.path.exists('feedback_data.json'):
                     os.remove('feedback_data.json')
-                    st.success("✅ 反馈数据已清空")
+                    st.success("Feedback data cleared")
                     st.rerun()
         
         with col2:
-            if st.button("🔄 刷新数据"):
+            if st.button("Refresh Data"):
                 st.rerun()
         
         # 显示数据集统计图表
         if len(feedbacks) > 0:
-            st.subheader("📈 反馈数据统计")
+            st.subheader("Feedback Data Statistics")
             
             # 按时间统计
             dates = [f['timestamp'][:10] for f in feedbacks]
@@ -821,9 +828,9 @@ with tab4:
             
             fig, ax = plt.subplots(figsize=(10, 4))
             ax.plot(date_counts.index, date_counts.values, marker='o')
-            ax.set_title('每日反馈数量')
-            ax.set_xlabel('日期')
-            ax.set_ylabel('反馈数量')
+            ax.set_title('Daily Feedback Count')
+            ax.set_xlabel('Date')
+            ax.set_ylabel('Feedback Count')
             plt.xticks(rotation=45)
             plt.tight_layout()
             st.pyplot(fig)
