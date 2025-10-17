@@ -55,7 +55,7 @@ def load_model():
 
 model = load_model()
 
-# initialize session state
+#initialize session state
 if 'clear_uploader' not in st.session_state:
     st.session_state.clear_uploader = 0
 
@@ -93,7 +93,7 @@ with tab1:
             boxes = results[0].boxes
 
             if boxes is None or len(boxes) == 0:
-                st.info("No species detected to plot!")
+                st.info("No species detected!")
             else: 
                 # show detection result image
                 with col2:
@@ -111,7 +111,7 @@ with tab2:
         )
         
         uploaded_files = st.file_uploader(
-            "", 
+            "label", 
             type=["jpg","jpeg","png","zip"], 
             accept_multiple_files=True, 
             label_visibility="collapsed",
